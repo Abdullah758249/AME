@@ -10,6 +10,8 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "10mb",
     },
   },
+  // هذا السطر يمنع تشتت السيرفر بين أمريكا وأوروبا ويقرب دالات السيرفر من قاعدة البيانات
+  preferredRegion: "fra1",
 };
 
 export default nextConfig;
