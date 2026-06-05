@@ -10,6 +10,8 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "10mb",
     },
   },
+  // هذا السطر يحل مشكلة تعارض ERR_REQUIRE_ESM ويجعل السيرفر يقرأ الحزم بنجاح
+  transpilePackages: ['html-encoding-sniffer', '@exodus/bytes'],
 };
 
 export default nextConfig;
