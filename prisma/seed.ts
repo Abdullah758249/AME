@@ -1,18 +1,20 @@
 import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
 async function main() {
-  const adminEmail = process.env.ADMIN_EMAIL ?? "abdullahemam48@gmail.com";
-  const adminPassword =
-    process.env.ADMIN_PASSWORD ?? "ChangeMeOnFirstLogin!";
-
-  const passwordHash = await bcrypt.hash(adminPassword, 12);
+  const adminEmail = "abdullahemam48@gmail.com";
+  
+  // هذا الهاش الفعلي والمباشر لكلمة المرور الثابتة والقوية: AmeHolding2026
+  const passwordHash = "$2a$10$R9hKvlXNz46IuEdfg6EfaO6XgBwMv86WwU3Dk6HjXhYF7u.2p8N2S";
 
   await prisma.adminUser.upsert({
     where: { email: adminEmail },
-    update: {},
+    // تحديث الباسورد إجبارياً لو الحساب موجود مسبقاً
+    update: {
+      passwordHash: passwordHash,
+      name: "عبدالله محمد إمام",
+    },
     create: {
       email: adminEmail,
       passwordHash,
@@ -104,9 +106,7 @@ async function main() {
     await prisma.navItem.createMany({ data: defaultNav });
   }
 
-  console.log("Seed completed.");
-  console.log(`Admin: ${adminEmail}`);
-  console.log("Change ADMIN_PASSWORD in .env and re-seed or update password in admin.");
+  console.log("Seed completed successfully and password updated.");
 }
 
 main()
