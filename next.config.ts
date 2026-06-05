@@ -10,11 +10,8 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "10mb",
     },
   },
-  // هنا مكانها الصحيح والمباشر في الإصدارات الجديدة من Next.js
+  // نتركها هنا فقط لكي يتجاهلها السيرفر تماماً أثناء التشغيل أونلاين
   serverExternalPackages: ['html-encoding-sniffer', '@exodus/bytes', 'isomorphic-dompurify'],
-  
-  // تجميع ومعالجة حزم الطرف المشتري لضمان التوافق
-  transpilePackages: ['html-encoding-sniffer', '@exodus/bytes'],
 };
 
 export default nextConfig;
