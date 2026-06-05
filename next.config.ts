@@ -9,8 +9,10 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: "10mb",
     },
+    // هذا الخيار يمنع السيرفر من عمل Bundle خاطئ للحزم المسببة للأزمة
+    serverExternalPackages: ['html-encoding-sniffer', '@exodus/bytes', 'isomorphic-dompurify'],
   },
-  // هذا السطر يحل مشكلة تعارض ERR_REQUIRE_ESM ويجعل السيرفر يقرأ الحزم بنجاح
+  // نبقي عليها كإجراء أمان إضافي للـ Client و الـ Build
   transpilePackages: ['html-encoding-sniffer', '@exodus/bytes'],
 };
 
