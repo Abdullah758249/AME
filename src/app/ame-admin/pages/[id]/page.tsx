@@ -1,3 +1,4 @@
+export const preferredRegion = 'fra1'; // لتجبر Vercel على تشغيل الكود في سيرفرات ألمانيا بجانب الـ Middleware
 import { notFound } from "next/navigation";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { prisma } from "@/lib/prisma";

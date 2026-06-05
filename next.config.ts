@@ -11,7 +11,7 @@ const nextConfig: NextConfig = {
     },
   },
   // هذا السطر يمنع تشتت السيرفر بين أمريكا وأوروبا ويقرب دالات السيرفر من قاعدة البيانات
-  preferredRegion: "fra1",
+
 };
 
 export default nextConfig;
