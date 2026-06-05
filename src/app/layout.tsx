@@ -9,6 +9,7 @@ import { PublicShell } from "@/components/PublicShell";
 import { Suspense } from "react";
 import { VisitTracker } from "@/components/VisitTracker";
 import { getAdminPath } from "@/lib/config";
+import { Analytics } from "@vercel/analytics/next";
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSiteSettings();
@@ -49,6 +50,7 @@ export default async function RootLayout({
             </LocaleProvider>
           </ThemeProvider>
         )}
+        <Analytics />
       </body>
     </html>
   );
