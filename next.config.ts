@@ -10,8 +10,6 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "10mb",
     },
   },
-  // نتركها هنا فقط لكي يتجاهلها السيرفر تماماً أثناء التشغيل أونلاين
-  serverExternalPackages: ['html-encoding-sniffer', '@exodus/bytes', 'isomorphic-dompurify'],
 };
 
 export default nextConfig;
