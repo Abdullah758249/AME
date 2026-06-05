@@ -18,6 +18,8 @@ import {
 } from "./totp";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
+
+// --------------------- Helper functions ---------------------
 async function assertCsrf(csrfToken: string) {
   if (!(await validateCsrf(csrfToken))) {
     throw new Error("CSRF_VALIDATION_FAILED");
@@ -29,6 +31,15 @@ async function getIp(): Promise<string | undefined> {
   return h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? undefined;
 }
 
+async function getAdminSessionSafe() {
+  try {
+    return await requireAdmin();
+  } catch {
+    return null;
+  }
+}
+
+// --------------------- Authentication ---------------------
 export async function adminLogin(
   email: string,
   password: string,
@@ -37,12 +48,23 @@ export async function adminLogin(
 ) {
   await assertCsrf(csrfToken);
 
+  const cleanEmail = email.toLowerCase().trim();
+
   const user = await prisma.adminUser.findUnique({
-    where: { email: email.toLowerCase().trim() },
+    where: { email: cleanEmail },
   });
+
+  // سطر كاشف للأخطاء في الـ Localhost: يطبع في الـ Terminal حالة الحساب
+  console.log("=== فحص الدخول محلياً ===");
+  console.log("المستخدم المدخل:", cleanEmail);
+  console.log("هل الحساب موجود في قاعدة البيانات؟:", user ? "نعم موجود ✅" : "لا، غير موجود ❌");
+
   if (!user) return { error: "Invalid credentials" };
 
   const valid = await bcrypt.compare(password, user.passwordHash);
+  console.log("هل كلمة المرور مطابقة؟:", valid ? "نعم متطابقة ومستقرة ✅" : "لا، كلمة المرور خاطئة ❌");
+  console.log("========================");
+
   if (!valid) return { error: "Invalid credentials" };
 
   if (user.totpEnabled && user.totpSecret) {
@@ -74,14 +96,6 @@ export async function adminLogout(csrfToken: string) {
   }
   await destroyAdminSession();
   return { ok: true };
-}
-
-async function getAdminSessionSafe() {
-  try {
-    return await requireAdmin();
-  } catch {
-    return null;
-  }
 }
 
 export async function changePassword(
@@ -174,6 +188,7 @@ export async function disableTotp(code: string, csrfToken: string) {
   return { ok: true };
 }
 
+// --------------------- Site Settings ---------------------
 export async function updateSiteSettings(
   data: Record<string, string | undefined>,
   csrfToken: string
@@ -208,6 +223,7 @@ export async function updateSiteSettings(
   return { ok: true };
 }
 
+// --------------------- Leadership ---------------------
 export async function updateLeadership(
   data: {
     nameAr: string;
@@ -253,6 +269,7 @@ export async function updateLeadership(
   return { ok: true };
 }
 
+// --------------------- Pages ---------------------
 const pageSchema = z.object({
   slug: z.string().min(1).max(120),
   titleAr: z.string().min(1),
@@ -327,6 +344,7 @@ export async function deletePage(id: string, csrfToken: string) {
   return { ok: true };
 }
 
+// --------------------- Navigation ---------------------
 export async function saveNavItem(
   id: string | null,
   data: {
@@ -381,6 +399,7 @@ export async function deleteNavItem(id: string, csrfToken: string) {
   return { ok: true };
 }
 
+// --------------------- Subsidiaries ---------------------
 export async function saveSubsidiary(
   id: string | null,
   raw: {
@@ -446,6 +465,7 @@ export async function deleteSubsidiary(id: string, csrfToken: string) {
   return { ok: true };
 }
 
+// --------------------- Projects ---------------------
 export async function saveProject(
   id: string | null,
   raw: {
@@ -513,6 +533,7 @@ export async function deleteProject(id: string, csrfToken: string) {
   return { ok: true };
 }
 
+// --------------------- News ---------------------
 export async function saveNews(
   id: string | null,
   raw: {
@@ -580,6 +601,7 @@ export async function deleteNews(id: string, csrfToken: string) {
   return { ok: true };
 }
 
+// --------------------- Contact Messages ---------------------
 export async function markMessageRead(id: string, csrfToken: string) {
   const user = await requireAdmin();
   await assertCsrf(csrfToken);
@@ -604,6 +626,7 @@ export async function deleteMessage(id: string, csrfToken: string) {
   return { ok: true };
 }
 
+// --------------------- Media ---------------------
 export async function listMedia() {
   await requireAdmin();
   return prisma.media.findMany({
