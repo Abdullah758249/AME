@@ -1,5 +1,8 @@
 "use server";
 
+
+
+import { put, list, del } from "@vercel/blob";
 import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
@@ -627,8 +630,12 @@ export async function deleteMessage(id: string, csrfToken: string) {
 }
 
 // --------------------- Media ---------------------
+// --------------------- Media ---------------------
 export async function listMedia() {
   await requireAdmin();
+  
+  // إذا كنت تستخدم Vercel Blob، يمكنك جلب الملفات من Blob Store أيضاً.
+  // لكننا سنبقي على Prisma Media كسجل للملفات المرفوعة محلياً أو عبر Blob.
   return prisma.media.findMany({
     orderBy: { createdAt: "desc" },
     take: 100,
@@ -657,7 +664,7 @@ export async function uploadMedia(formData: FormData, csrfToken: string) {
 
   const file = formData.get("file") as File | null;
   if (!file || !(file instanceof Blob)) {
-    return { error: "No file" };
+    return { error: "لا يوجد ملف" };
   }
 
   const ext = UPLOAD_MIME_EXT[file.type];
@@ -668,37 +675,45 @@ export async function uploadMedia(formData: FormData, csrfToken: string) {
     return { error: "الملف كبير جدًا (الحد 15MB)" };
   }
 
+  // ✅ استخدام Vercel Blob في جميع البيئات (محلي وإنتاج)
+  // بدلاً من الكتابة على الملفات المحلية
   const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-  const uploadDir = path.join(process.cwd(), "public", "uploads");
-  await mkdir(uploadDir, { recursive: true });
+  
+  try {
+    // رفع الملف إلى Vercel Blob
+    const blob = await put(filename, file, {
+      access: "public",
+      addRandomSuffix: false, // نتحكم بالاسم بأنفسنا
+    });
 
-  const buffer = Buffer.from(await file.arrayBuffer());
-  await writeFile(path.join(uploadDir, filename), buffer);
+    // حفظ السجل في قاعدة البيانات
+    const media = await prisma.media.create({
+      data: {
+        filename: blob.pathname,
+        url: blob.url,
+        mimeType: file.type,
+        size: file.size,
+      },
+    });
 
-  const url = `/uploads/${filename}`;
-  const media = await prisma.media.create({
-    data: {
-      filename,
-      url,
+    await logAudit({
+      userId: user.id,
+      action: "UPLOAD_MEDIA",
+      entity: "Media",
+      entityId: media.id,
+      details: blob.url,
+      ipAddress: await getIp(),
+    });
+
+    return {
+      ok: true,
+      url: blob.url,
+      id: media.id,
       mimeType: file.type,
-      size: file.size,
-    },
-  });
-
-  await logAudit({
-    userId: user.id,
-    action: "UPLOAD_MEDIA",
-    entity: "Media",
-    entityId: media.id,
-    details: filename,
-    ipAddress: await getIp(),
-  });
-
-  return {
-    ok: true,
-    url,
-    id: media.id,
-    mimeType: file.type,
-    isImage: file.type.startsWith("image/"),
-  };
+      isImage: file.type.startsWith("image/"),
+    };
+  } catch (error) {
+    console.error("Upload to Vercel Blob failed:", error);
+    return { error: "فشل رفع الملف، تأكد من إعداد متغير البيئة BLOB_READ_WRITE_TOKEN" };
+  }
 }
