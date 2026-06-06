@@ -1,31 +1,117 @@
 import { cookies } from "next/headers";
 import { SignJWT, jwtVerify } from "jose";
+import { randomBytes } from "crypto";
+import { prisma } from "@/lib/prisma";
+import { hashToken } from "@/lib/session";
 
-const SECRET = new TextEncoder().encode(process.env.SESSION_SECRET || "default-secret-change-me");
+const COOKIE_NAME = "ame_admin_session";
+const SESSION_DAYS = 7;
 
-export async function getSessionFromServer() {
-  const token = cookies().get("ame_admin_session")?.value;
+function getSecret(): Uint8Array {
+  const secret = process.env.SESSION_SECRET;
+  if (!secret || secret.length < 32) {
+    throw new Error("SESSION_SECRET must be at least 32 characters");
+  }
+  return new TextEncoder().encode(secret);
+}
+
+export async function createAdminSession(
+  userId: string,
+  ip?: string,
+  userAgent?: string
+): Promise<string> {
+  const rawToken = randomBytes(32).toString("hex");
+  const tokenHash = hashToken(rawToken);
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + SESSION_DAYS);
+
+  await prisma.adminSession.create({
+    data: {
+      userId,
+      tokenHash,
+      expiresAt,
+      ipAddress: ip,
+      userAgent: userAgent?.slice(0, 500),
+    },
+  });
+
+  const jwt = await new SignJWT({ sid: tokenHash, uid: userId })
+    .setProtectedHeader({ alg: "HS256" })
+    .setExpirationTime(`${SESSION_DAYS}d`)
+    .setIssuedAt()
+    .sign(getSecret());
+
+  const cookieStore = await cookies();
+  cookieStore.set(COOKIE_NAME, jwt, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: SESSION_DAYS * 24 * 60 * 60,
+  });
+
+  return rawToken;
+}
+
+export async function destroyAdminSession(): Promise<void> {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(COOKIE_NAME)?.value;
+  if (token) {
+    try {
+      const { payload } = await jwtVerify(token, getSecret());
+      const sid = payload.sid as string;
+      if (sid) {
+        await prisma.adminSession.deleteMany({ where: { tokenHash: sid } });
+      }
+    } catch {
+      /* invalid token */
+    }
+  }
+  cookieStore.delete(COOKIE_NAME);
+}
+
+export type AdminSessionUser = {
+  id: string;
+  email: string;
+  name: string | null;
+  totpEnabled: boolean;
+};
+
+export async function getAdminSession(): Promise<AdminSessionUser | null> {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(COOKIE_NAME)?.value;
   if (!token) return null;
+
   try {
-    const { payload } = await jwtVerify(token, SECRET);
-    return payload;
+    const { payload } = await jwtVerify(token, getSecret());
+    const sid = payload.sid as string;
+    const uid = payload.uid as string;
+    if (!sid || !uid) return null;
+
+    const session = await prisma.adminSession.findFirst({
+      where: {
+        tokenHash: sid,
+        userId: uid,
+        expiresAt: { gt: new Date() },
+      },
+      include: { user: true },
+    });
+
+    if (!session?.user) return null;
+
+    return {
+      id: session.user.id,
+      email: session.user.email,
+      name: session.user.name,
+      totpEnabled: session.user.totpEnabled,
+    };
   } catch {
     return null;
   }
 }
 
-export async function createSessionOnServer(userId: string, role: string) {
-  const token = await new SignJWT({ userId, role })
-    .setProtectedHeader({ alg: "HS256" })
-    .setIssuedAt()
-    .setExpirationTime("2h")
-    .sign(SECRET);
-  cookies().set("ame_admin_session", token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
-    path: "/",
-    maxAge: 60 * 60 * 2,
-  });
-  return token;
+export async function requireAdmin(): Promise<AdminSessionUser> {
+  const user = await getAdminSession();
+  if (!user) throw new Error("UNAUTHORIZED");
+  return user;
 }
