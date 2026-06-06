@@ -1,37 +1,32 @@
+'use client'; // اجعله Client Component ليتجنب استيراد دوال السيرفر
+
 import Link from "next/link";
-import { getAdminSession } from "@/lib/server/session";
-import { redirect } from "next/navigation";
-import { getCsrfToken } from "@/lib/server/csrf";
 import { AdminNav } from "./AdminNav";
 import { AdminLogoutButton } from "./AdminLogoutButton";
 
-const links = [
-  { href: "/ame-admin", label: "لوحة التحكم" },
-  { href: "/ame-admin/analytics", label: "الإحصائيات" },
-  { href: "/ame-admin/settings", label: "إعدادات الموقع" },
-  { href: "/ame-admin/leadership", label: "القيادة" },
-  { href: "/ame-admin/pages", label: "الصفحات" },
-  { href: "/ame-admin/navigation", label: "القوائم" },
-  { href: "/ame-admin/subsidiaries", label: "الشركات التابعة" },
-  { href: "/ame-admin/projects", label: "المشاريع" },
-  { href: "/ame-admin/news", label: "الأخبار" },
-  { href: "/ame-admin/messages", label: "الرسائل" },
-  { href: "/ame-admin/media", label: "الوسائط" },
-  { href: "/ame-admin/security", label: "الأمان" },
-  { href: "/ame-admin/audit", label: "سجل العمليات" },
-];
-
-export async function AdminShell({
-  children,
-  title,
-}: {
+interface AdminShellProps {
   children: React.ReactNode;
   title: string;
-}) {
-  const user = await getAdminSession();
-  if (!user) redirect("/ame-admin/login");
+  user: { email: string }; // استقبل المستخدم كـ prop
+  csrfToken: string;
+}
 
-  const csrfToken = await getCsrfToken();
+export function AdminShell({ children, title, user, csrfToken }: AdminShellProps) {
+  const links = [
+    { href: "/ame-admin", label: "لوحة التحكم" },
+    { href: "/ame-admin/analytics", label: "الإحصائيات" },
+    { href: "/ame-admin/settings", label: "إعدادات الموقع" },
+    { href: "/ame-admin/leadership", label: "القيادة" },
+    { href: "/ame-admin/pages", label: "الصفحات" },
+    { href: "/ame-admin/navigation", label: "القوائم" },
+    { href: "/ame-admin/subsidiaries", label: "الشركات التابعة" },
+    { href: "/ame-admin/projects", label: "المشاريع" },
+    { href: "/ame-admin/news", label: "الأخبار" },
+    { href: "/ame-admin/messages", label: "الرسائل" },
+    { href: "/ame-admin/media", label: "الوسائط" },
+    { href: "/ame-admin/security", label: "الأمان" },
+    { href: "/ame-admin/audit", label: "سجل العمليات" },
+  ];
 
   return (
     <div className="flex min-h-screen">
