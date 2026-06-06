@@ -1,27 +1,57 @@
 import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcryptjs";
+import crypto from "crypto";
 
 const prisma = new PrismaClient();
 
 async function main() {
   const adminEmail = "abdullahemam48@gmail.com";
-  
-  // هذا الهاش الفعلي والمباشر لكلمة المرور الثابتة والقوية: AmeHolding2026
-  const passwordHash = "$2a$10$R9hKvlXNz46IuEdfg6EfaO6XgBwMv86WwU3Dk6HjXhYF7u.2p8N2S";
 
-  await prisma.adminUser.upsert({
+  // التحقق من وجود مستخدم بنفس البريد الإلكتروني
+  const existingAdmin = await prisma.adminUser.findUnique({
     where: { email: adminEmail },
-    // تحديث الباسورد إجبارياً لو الحساب موجود مسبقاً
-    update: {
-      passwordHash: passwordHash,
-      name: "عبدالله محمد إمام",
-    },
-    create: {
-      email: adminEmail,
-      passwordHash,
-      name: "عبدالله محمد إمام",
-    },
   });
 
+  let finalPassword: string;
+  let tempPassword: string | null = null;
+
+  if (!existingAdmin) {
+    // إنشاء كلمة مرور عشوائية قوية (12 حرفًا)
+    tempPassword = crypto.randomBytes(8).toString("hex"); // 16 حرفًا عشوائيًا
+    const hashedPassword = await bcrypt.hash(tempPassword, 10);
+
+    await prisma.adminUser.create({
+      data: {
+        email: adminEmail,
+        passwordHash: hashedPassword,
+        name: "عبدالله محمد إمام",
+      },
+    });
+
+    finalPassword = tempPassword;
+    console.log("====================================");
+    console.log(`🔐 تم إنشاء حساب المسؤول لأول مرة.`);
+    console.log(`📧 البريد: ${adminEmail}`);
+    console.log(`🔑 كلمة المرور المؤقتة: ${tempPassword}`);
+    console.log(`⚠️  يرجى تغييرها فور تسجيل الدخول!`);
+    console.log("====================================");
+  } else {
+    // إذا كان الحساب موجودًا، لا نغير كلمة المرور (نحافظ على الأمان)
+    // يمكن تفعيل السطر التالي إذا أردت تحديث كلمة المرور من متغير بيئة
+    // const envPassword = process.env.ADMIN_PASSWORD;
+    // if (envPassword) {
+    //   const newHash = await bcrypt.hash(envPassword, 10);
+    //   await prisma.adminUser.update({
+    //     where: { email: adminEmail },
+    //     data: { passwordHash: newHash },
+    //   });
+    //   console.log("تم تحديث كلمة مرور المسؤول من متغير البيئة.");
+    // }
+    console.log(`✅ المسؤول موجود بالفعل. لم يتم تغيير كلمة المرور.`);
+    finalPassword = "(محفوظة بالفعل)";
+  }
+
+  // باقي الإعدادات (siteSettings, leadership, navItems) تبقى كما هي
   await prisma.siteSettings.upsert({
     where: { id: 1 },
     update: {},
@@ -106,12 +136,12 @@ async function main() {
     await prisma.navItem.createMany({ data: defaultNav });
   }
 
-  console.log("Seed completed successfully and password updated.");
+  console.log("✅ Seed completed successfully.");
 }
 
 main()
   .catch((e) => {
-    console.error(e);
+    console.error("❌ خطأ في seeding:", e);
     process.exit(1);
   })
   .finally(() => prisma.$disconnect());
