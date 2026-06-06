@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { getAdminSession } from "@/lib/session";
+import { getAdminSession } from "@/lib/server/session";
 import { redirect } from "next/navigation";
-import { getCsrfToken } from "@/lib/csrf";
+import { getCsrfToken } from "@/lib/server/csrf";
 import { AdminNav } from "./AdminNav";
 import { AdminLogoutButton } from "./AdminLogoutButton";
 
