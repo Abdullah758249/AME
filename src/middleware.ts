@@ -9,7 +9,12 @@ const ADMIN_PATH = process.env.ADMIN_PATH ?? "/ame-admin";
 
 function getSecret(): Uint8Array | null {
   const secret = process.env.SESSION_SECRET;
-  if (!secret || secret.length < 32) return null;
+  if (!secret || secret.length < 32) {
+    if (process.env.NODE_ENV === "production") {
+      console.error("SESSION_SECRET must be at least 32 characters long");
+    }
+    return null;
+  }
   return new TextEncoder().encode(secret);
 }
 
@@ -44,9 +49,26 @@ function applyCsrf(
   requestHeaders.set(CSRF_REQUEST_HEADER, token);
 }
 
+function isBodySizeAllowed(request: NextRequest): boolean {
+  const contentLength = request.headers.get("content-length");
+  if (!contentLength) return true;
+  const size = parseInt(contentLength, 10);
+  const maxSize = request.nextUrl.pathname.startsWith(ADMIN_PATH)
+    ? 5 * 1024 * 1024
+    : 2 * 1024 * 1024;
+  return size <= maxSize;
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const adminBase = ADMIN_PATH.replace(/\/$/, "");
+
+  if (!isBodySizeAllowed(request)) {
+    return new NextResponse(
+      JSON.stringify({ error: "Request body too large" }),
+      { status: 413, headers: { "Content-Type": "application/json" } }
+    );
+  }
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-pathname", pathname);

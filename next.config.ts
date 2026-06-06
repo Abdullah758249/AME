@@ -2,16 +2,35 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   images: {
-    remotePatterns: [],
+    remotePatterns: [
+      // أضف النطاقات المسموحة هنا، مثال:
+      // { protocol: 'https', hostname: 'cdn.example.com' }
+    ],
     formats: ["image/avif", "image/webp"],
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
+  poweredByHeader: false,     // إخفاء X-Powered-By
+  compress: true,             // ضغط الردود
   experimental: {
     serverActions: {
-      bodySizeLimit: "10mb",
+      bodySizeLimit: "2mb",   // تم التخفيض من 10mb إلى 2mb للأمان
     },
+    optimizePackageImports: ["lucide-react", "date-fns"],
   },
-  // هذا السطر يمنع تشتت السيرفر بين أمريكا وأوروبا ويقرب دالات السيرفر من قاعدة البيانات
-
+  async headers() {
+    return [
+      {
+        source: "/(.*)",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "X-XSS-Protection", value: "1; mode=block" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;
