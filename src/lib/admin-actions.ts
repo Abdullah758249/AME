@@ -1,15 +1,13 @@
 "use server";
 
-
-
 import { put, list, del } from "@vercel/blob";
 import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { z } from "zod";
 import { prisma } from "./prisma";
-import { requireAdmin, createAdminSession, destroyAdminSession } from "./session";
-import { validateCsrf } from "./csrf";
+import { requireAdmin, createAdminSession, destroyAdminSession } from "@/lib/server/session";
+import { validateCsrf } from "@/lib/server/csrf";
 import { logAudit } from "./audit";
 import { sanitizeHtml, stripHtml } from "./sanitize";
 import { slugify } from "./slug";
@@ -630,7 +628,6 @@ export async function deleteMessage(id: string, csrfToken: string) {
 }
 
 // --------------------- Media ---------------------
-// --------------------- Media ---------------------
 export async function listMedia() {
   await requireAdmin();
   
@@ -676,17 +673,14 @@ export async function uploadMedia(formData: FormData, csrfToken: string) {
   }
 
   // ✅ استخدام Vercel Blob في جميع البيئات (محلي وإنتاج)
-  // بدلاً من الكتابة على الملفات المحلية
   const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
   
   try {
-    // رفع الملف إلى Vercel Blob
     const blob = await put(filename, file, {
       access: "public",
-      addRandomSuffix: false, // نتحكم بالاسم بأنفسنا
+      addRandomSuffix: false,
     });
 
-    // حفظ السجل في قاعدة البيانات
     const media = await prisma.media.create({
       data: {
         filename: blob.pathname,

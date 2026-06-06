@@ -1,8 +1,7 @@
 import { cookies } from "next/headers";
 import { SignJWT, jwtVerify } from "jose";
-import { randomBytes } from "crypto";
+import { randomBytes, createHash } from "crypto";
 import { prisma } from "@/lib/prisma";
-import { hashToken } from "@/lib/session";
 
 const COOKIE_NAME = "ame_admin_session";
 const SESSION_DAYS = 7;
@@ -15,24 +14,19 @@ function getSecret(): Uint8Array {
   return new TextEncoder().encode(secret);
 }
 
-export async function createAdminSession(
-  userId: string,
-  ip?: string,
-  userAgent?: string
-): Promise<string> {
+// تعريف hashToken أولاً
+export function hashToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
+}
+
+export async function createAdminSession(userId: string, ip?: string, userAgent?: string): Promise<string> {
   const rawToken = randomBytes(32).toString("hex");
   const tokenHash = hashToken(rawToken);
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + SESSION_DAYS);
 
   await prisma.adminSession.create({
-    data: {
-      userId,
-      tokenHash,
-      expiresAt,
-      ipAddress: ip,
-      userAgent: userAgent?.slice(0, 500),
-    },
+    data: { userId, tokenHash, expiresAt, ipAddress: ip, userAgent: userAgent?.slice(0, 500) },
   });
 
   const jwt = await new SignJWT({ sid: tokenHash, uid: userId })
@@ -41,8 +35,7 @@ export async function createAdminSession(
     .setIssuedAt()
     .sign(getSecret());
 
-  const cookieStore = await cookies();
-  cookieStore.set(COOKIE_NAME, jwt, {
+  (await cookies()).set(COOKIE_NAME, jwt, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
@@ -59,46 +52,25 @@ export async function destroyAdminSession(): Promise<void> {
   if (token) {
     try {
       const { payload } = await jwtVerify(token, getSecret());
-      const sid = payload.sid as string;
-      if (sid) {
-        await prisma.adminSession.deleteMany({ where: { tokenHash: sid } });
-      }
-    } catch {
-      /* invalid token */
-    }
+      if (payload.sid) await prisma.adminSession.deleteMany({ where: { tokenHash: payload.sid as string } });
+    } catch {}
   }
   cookieStore.delete(COOKIE_NAME);
 }
 
-export type AdminSessionUser = {
-  id: string;
-  email: string;
-  name: string | null;
-  totpEnabled: boolean;
-};
+export type AdminSessionUser = { id: string; email: string; name: string | null; totpEnabled: boolean };
 
 export async function getAdminSession(): Promise<AdminSessionUser | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get(COOKIE_NAME)?.value;
   if (!token) return null;
-
   try {
     const { payload } = await jwtVerify(token, getSecret());
-    const sid = payload.sid as string;
-    const uid = payload.uid as string;
-    if (!sid || !uid) return null;
-
     const session = await prisma.adminSession.findFirst({
-      where: {
-        tokenHash: sid,
-        userId: uid,
-        expiresAt: { gt: new Date() },
-      },
+      where: { tokenHash: payload.sid as string, userId: payload.uid as string, expiresAt: { gt: new Date() } },
       include: { user: true },
     });
-
     if (!session?.user) return null;
-
     return {
       id: session.user.id,
       email: session.user.email,

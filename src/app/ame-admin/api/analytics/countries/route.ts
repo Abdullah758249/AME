@@ -3,21 +3,13 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   try {
-    // تجميع الزيارات حسب الدولة مع العد
-    const countries = await prisma.visit.groupBy({
+    const countries = await prisma.pageVisit.groupBy({
       by: ["country"],
-      _count: {
-        id: true,
-      },
-      orderBy: {
-        _count: {
-          id: "desc",
-        },
-      },
-      take: 20, // أعلى 20 دولة
+      _count: { id: true },
+      orderBy: { _count: { id: "desc" } },
+      take: 20,
     });
 
-    // تنسيق النتيجة
     const result = countries.map((item) => ({
       country: item.country || "غير معروف",
       visits: item._count.id,
