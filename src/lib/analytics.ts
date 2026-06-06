@@ -1,4 +1,20 @@
+
 import { prisma } from "./prisma";
+import UAParser from 'ua-parser-js';
+
+export function parseUserAgent(ua: string) {
+  const parser = new UAParser(ua);
+  return {
+    browser: parser.getBrowser().name || 'غير معروف',
+    os: parser.getOS().name || 'غير معروف',
+  };
+}
+
+// أضف هذه الحقول في model Visit في schema.prisma
+// browser String?
+// os String?
+
+
 
 function startOfDay(d = new Date()): Date {
   const x = new Date(d);
