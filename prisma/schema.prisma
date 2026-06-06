@@ -1,88 +1,21 @@
-// src/lib/analytics.ts
-import { prisma } from "./prisma";
-import { UAParser } from "ua-parser-js"; // استيراد افتراضي غير صحيح، بل استيراد مسمى
-
-export function parseUserAgent(ua: string) {
-  const parser = new UAParser(ua);
-  return {
-    browser: parser.getBrowser().name || "غير معروف",
-    os: parser.getOS().name || "غير معروف",
-  };
-}
-
-export async function recordVisit(data: {
-  path: string;
-  referrer?: string;
-  source?: string;
-  country?: string;
-  userAgent?: string;
-  sessionId?: string;
-}) {
-  await prisma.pageVisit.create({ data });
-}
-
-export async function getAnalyticsSummary() {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const weekAgo = new Date();
-  weekAgo.setDate(weekAgo.getDate() - 7);
-  const monthAgo = new Date();
-  monthAgo.setMonth(monthAgo.getMonth() - 1);
-
-  const [todayCount, weekCount, monthCount, totalCount, topPages, sources, countries] = await Promise.all([
-    prisma.pageVisit.count({ where: { createdAt: { gte: today } } }),
-    prisma.pageVisit.count({ where: { createdAt: { gte: weekAgo } } }),
-    prisma.pageVisit.count({ where: { createdAt: { gte: monthAgo } } }),
-    prisma.pageVisit.count(),
-    prisma.pageVisit.groupBy({
-      by: ["path"],
-      _count: { id: true },
-      orderBy: { _count: { id: "desc" } },
-      take: 10,
-    }),
-    prisma.pageVisit.groupBy({
-      by: ["source"],
-      _count: { id: true },
-      orderBy: { _count: { id: "desc" } },
-      take: 10,
-    }),
-    prisma.pageVisit.groupBy({
-      by: ["country"],
-      _count: { id: true },
-      orderBy: { _count: { id: "desc" } },
-      take: 20,
-    }),
-  ]);
-
-  return {
-    today: todayCount,
-    week: weekCount,
-    month: monthCount,
-    total: totalCount,
-    topPages: topPages.map(p => ({ path: p.path, count: p._count.id })),
-    sources: sources.map(s => ({ source: s.source || "مباشر", count: s._count.id })),
-    countries: countries.map(c => ({ country: c.country || "غير معروف", count: c._count.id })),
-  };
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 generator client {
   provider = "prisma-client-js"
 }
 
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
-
 model AdminUser {
-  id           String   @id @default(cuid())
-  email        String   @unique
+  id           String         @id @default(cuid())
+  email        String         @unique
   passwordHash String
   name         String?
   totpSecret   String?
-  totpEnabled  Boolean  @default(false)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  totpEnabled  Boolean        @default(false)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
   sessions     AdminSession[]
   auditLogs    AuditLog[]
 }
@@ -99,30 +32,30 @@ model AdminSession {
 }
 
 model SiteSettings {
-  id              Int     @id @default(1)
-  companyNameAr   String  @default("AME")
-  companyNameEn   String  @default("AME")
-  taglineAr       String?
-  taglineEn       String?
-  logoUrl         String?
-  faviconUrl      String?
-  phone           String?
-  email           String?
-  addressAr       String?
-  addressEn       String?
-  aboutAr         String?
-  aboutEn         String?
-  visionAr        String?
-  visionEn        String?
-  missionAr       String?
-  missionEn       String?
-  valuesAr        String?
-  valuesEn        String?
-  homeIntroAr     String?
-  homeIntroEn     String?
+  id                Int      @id @default(1)
+  companyNameAr     String   @default("AME")
+  companyNameEn     String   @default("AME")
+  taglineAr         String?
+  taglineEn         String?
+  logoUrl           String?
+  faviconUrl        String?
+  phone             String?
+  email             String?
+  addressAr         String?
+  addressEn         String?
+  aboutAr           String?
+  aboutEn           String?
+  visionAr          String?
+  visionEn          String?
+  missionAr         String?
+  missionEn         String?
+  valuesAr          String?
+  valuesEn          String?
+  homeIntroAr       String?
+  homeIntroEn       String?
   metaDescriptionAr String?
   metaDescriptionEn String?
-  updatedAt       DateTime @updatedAt
+  updatedAt         DateTime @updatedAt
 }
 
 model Leadership {
@@ -168,43 +101,43 @@ model NavItem {
 }
 
 model Subsidiary {
-  id          String   @id @default(cuid())
-  slug        String   @unique
-  nameAr      String
-  nameEn      String
-  summaryAr   String?
-  summaryEn   String?
-  contentAr   String?
-  contentEn   String?
-  logoUrl     String?
-  websiteUrl  String?
-  published   Boolean  @default(true)
-  sortOrder   Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String   @id @default(cuid())
+  slug       String   @unique
+  nameAr     String
+  nameEn     String
+  summaryAr  String?
+  summaryEn  String?
+  contentAr  String?
+  contentEn  String?
+  logoUrl    String?
+  websiteUrl String?
+  published  Boolean  @default(true)
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 model Project {
-  id          String   @id @default(cuid())
-  slug        String   @unique
-  titleAr     String
-  titleEn     String
-  summaryAr   String?
-  summaryEn   String?
-  contentAr   String?
-  contentEn   String?
-  imageUrl    String?
-  statusAr    String?
-  statusEn    String?
-  published   Boolean  @default(true)
-  sortOrder   Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  titleAr   String
+  titleEn   String
+  summaryAr String?
+  summaryEn String?
+  contentAr String?
+  contentEn String?
+  imageUrl  String?
+  statusAr  String?
+  statusEn  String?
+  published Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model NewsArticle {
-  id          String   @id @default(cuid())
-  slug        String   @unique
+  id          String    @id @default(cuid())
+  slug        String    @unique
   titleAr     String
   titleEn     String
   excerptAr   String?
@@ -212,10 +145,10 @@ model NewsArticle {
   contentAr   String
   contentEn   String
   imageUrl    String?
-  published   Boolean  @default(false)
+  published   Boolean   @default(false)
   publishedAt DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
 model ContactMessage {
@@ -248,15 +181,19 @@ model PageVisit {
   country   String?
   userAgent String?
   sessionId String?
+  browser   String?  // الحقل الجديد
+  os        String?  // الحقل الجديد
   createdAt DateTime @default(now())
 
   @@index([createdAt])
   @@index([path])
   @@index([country])
+  @@index([browser])
+  @@index([os])
 }
 
 model AuditLog {
-  id        String   @id @default(cuid())
+  id        String     @id @default(cuid())
   userId    String?
   user      AdminUser? @relation(fields: [userId], references: [id], onDelete: SetNull)
   action    String
@@ -264,7 +201,26 @@ model AuditLog {
   entityId  String?
   details   String?
   ipAddress String?
+  createdAt DateTime   @default(now())
+
+  @@index([createdAt])
+}
+
+model PageVisit {
+  id        String   @id @default(cuid())
+  path      String
+  referrer  String?
+  source    String?
+  country   String?
+  userAgent String?
+  sessionId String?
+  browser   String?  // الحقل المضاف
+  os        String?  // الحقل المضاف
   createdAt DateTime @default(now())
 
   @@index([createdAt])
+  @@index([path])
+  @@index([country])
+  @@index([browser]) // كشاف مضاف لتسريع الـ groupBy الجديد
+  @@index([os])      // كشاف مضاف لتسريع الـ groupBy الجديد
 }
