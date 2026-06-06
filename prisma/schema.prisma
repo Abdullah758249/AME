@@ -1,10 +1,10 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-}
-
-generator client {
-  provider = "prisma-client-js"
 }
 
 model AdminUser {
@@ -21,12 +21,12 @@ model AdminUser {
 }
 
 model AdminSession {
-  id        String   @id @default(cuid())
+  id        String     @id @default(cuid())
   userId    String
-  user      AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tokenHash String   @unique
+  user      AdminUser  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String     @unique
   expiresAt DateTime
-  createdAt DateTime @default(now())
+  createdAt DateTime   @default(now())
   ipAddress String?
   userAgent String?
 }
@@ -89,15 +89,15 @@ model Page {
 }
 
 model NavItem {
-  id        String   @id @default(cuid())
-  labelAr   String
-  labelEn   String
-  href      String
-  sortOrder Int      @default(0)
-  visible   Boolean  @default(true)
-  isExternal Boolean @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(cuid())
+  labelAr    String
+  labelEn    String
+  href       String
+  sortOrder  Int      @default(0)
+  visible    Boolean  @default(true)
+  isExternal Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 model Subsidiary {
@@ -204,23 +204,4 @@ model AuditLog {
   createdAt DateTime   @default(now())
 
   @@index([createdAt])
-}
-
-model PageVisit {
-  id        String   @id @default(cuid())
-  path      String
-  referrer  String?
-  source    String?
-  country   String?
-  userAgent String?
-  sessionId String?
-  browser   String?  // الحقل المضاف
-  os        String?  // الحقل المضاف
-  createdAt DateTime @default(now())
-
-  @@index([createdAt])
-  @@index([path])
-  @@index([country])
-  @@index([browser]) // كشاف مضاف لتسريع الـ groupBy الجديد
-  @@index([os])      // كشاف مضاف لتسريع الـ groupBy الجديد
 }
