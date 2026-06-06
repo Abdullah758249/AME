@@ -1,15 +1,17 @@
-
 import { prisma } from "./prisma";
-import UAParser from 'ua-parser-js';
+// 👇 التعديل هنا: إضافة الأقواس المجعدة حول الاستيراد
+import { UAParser } from 'ua-parser-js'; 
 
 export function parseUserAgent(ua: string) {
-  const parser = new UAParser(ua);
+  // الآن سيعمل هذا السطر بشكل سليم تماماً دون أخطاء
+  const parser = new UAParser(ua); 
   return {
     browser: parser.getBrowser().name || 'غير معروف',
     os: parser.getOS().name || 'غير معروف',
   };
 }
 
+// بقية الكود الخاص بك كما هو...
 // أضف هذه الحقول في model Visit في schema.prisma
 // browser String?
 // os String?
