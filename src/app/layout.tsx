@@ -10,17 +10,67 @@ import { Suspense } from "react";
 import { VisitTracker } from "@/components/VisitTracker";
 import { getAdminPath } from "@/lib/config";
 
+// تحديد رابط الموقع الأساسي (غيّره إذا كان رابطك مختلفًا)
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://ame-m7c2.vercel.app";
+
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSiteSettings();
   return {
+    metadataBase: new URL(BASE_URL), // مهم جدًا للروابط الأساسية
     title: {
-      default: settings.companyNameEn,
-      template: `%s | ${settings.companyNameEn}`,
+      default: settings.companyNameEn || "AME",
+      template: `%s | ${settings.companyNameEn || "AME"}`,
     },
     description:
       settings.metaDescriptionAr ??
       settings.metaDescriptionEn ??
-      "AME — Holding & investment company",
+      "AME — شركة قابضة واستثمارية في مرحلة التأسيس",
+    keywords: ["AME", "شركة قابضة", "استثمار", "Holding", "Investment"],
+    authors: [{ name: "عبدالله محمد إمام" }],
+    openGraph: {
+      title: settings.companyNameEn || "AME",
+      description:
+        settings.metaDescriptionAr ??
+        "AME — شركة قابضة واستثمارية تهدف لبناء وتطوير مشاريع وشركات متعددة.",
+      url: BASE_URL,
+      siteName: "AME",
+      locale: "ar_EG",
+      type: "website",
+      images: [
+        {
+          url: `${BASE_URL}/opengraph-image.png`,
+          width: 1200,
+          height: 630,
+          alt: "AME Logo",
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: settings.companyNameEn || "AME",
+      description:
+        settings.metaDescriptionAr ??
+        "AME — شركة قابضة واستثمارية في مرحلة التأسيس",
+      images: [`${BASE_URL}/opengraph-image.png`],
+    },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        "max-video-preview": -1,
+        "max-image-preview": "large",
+        "max-snippet": -1,
+      },
+    },
+    verification: {
+      // يمكنك إضافة أكواد التحقق من Google Search Console لاحقًا
+      // google: "your-google-verification-code",
+    },
+    alternates: {
+      canonical: BASE_URL,
+    },
   };
 }
 
@@ -36,7 +86,11 @@ export default async function RootLayout({
 
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
-      <body className={`min-h-screen antialiased ${isAdmin ? "bg-zinc-950 text-zinc-100" : ""}`}>
+      <body
+        className={`min-h-screen antialiased ${
+          isAdmin ? "bg-zinc-950 text-zinc-100" : ""
+        }`}
+      >
         {isAdmin ? (
           children
         ) : (
