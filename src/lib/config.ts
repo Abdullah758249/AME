@@ -1,8 +1,4 @@
-export function getAdminPath(): string {
-  const path = process.env.ADMIN_PATH ?? "/ame-admin";
-  return path.startsWith("/") ? path : `/${path}`;
-}
+// هذا الملف الآن مخصص للاستخدام في مكونات العميل فقط
+import { CSRF_COOKIE, CSRF_HEADER } from './csrf-constants';
 
-export function getSiteUrl(): string {
-  return process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-}
+export { CSRF_COOKIE, CSRF_HEADER };

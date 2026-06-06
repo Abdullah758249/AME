@@ -1,26 +1,18 @@
-import { cookies, headers } from "next/headers";
 import { timingSafeEqual } from "crypto";
 import {
   CSRF_COOKIE,
   CSRF_HEADER,
   CSRF_REQUEST_HEADER,
 } from "./csrf-constants";
+import { createCsrfToken as generateToken } from "./csrf-token";
 
-/** Read-only: cookie is set in middleware, not during RSC render */
-export async function getCsrfToken(): Promise<string> {
-  const headersList = await headers();
-  const fromMiddleware = headersList.get(CSRF_REQUEST_HEADER);
-  if (fromMiddleware) return fromMiddleware;
-
-  const cookieStore = await cookies();
-  return cookieStore.get(CSRF_COOKIE)?.value ?? "";
+// دوال خالصة (pure) لا تعتمد على next/headers
+export function createCsrfToken() {
+  return generateToken();
 }
 
-export async function validateCsrf(headerToken: string | null): Promise<boolean> {
-  if (!headerToken) return false;
-  const cookieStore = await cookies();
-  const cookieToken = cookieStore.get(CSRF_COOKIE)?.value;
-  if (!cookieToken) return false;
+export function validateCsrfToken(headerToken: string, cookieToken: string): boolean {
+  if (!headerToken || !cookieToken) return false;
   try {
     const a = Buffer.from(headerToken);
     const b = Buffer.from(cookieToken);
@@ -31,4 +23,5 @@ export async function validateCsrf(headerToken: string | null): Promise<boolean>
   }
 }
 
-export { CSRF_HEADER, CSRF_COOKIE } from "./csrf-constants";
+// إعادة تصدير الثوابت
+export { CSRF_HEADER, CSRF_COOKIE, CSRF_REQUEST_HEADER };
